@@ -140,6 +140,48 @@ export async function POST(request: Request) {
             return fail('Your message could not be delivered. Please try again shortly.', 502);
         }
 
+        // Send acknowledgement email to the visitor (do not fail the request if this fails)
+        try {
+            const ackHtml = `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;">
+  <p style="font-size:14px;line-height:1.7;">Your message has been successfully received by Singularity Horizon Technologies.</p>
+  <p style="font-size:14px;line-height:1.7;">Thank you for reaching out. Your transmission has been received and will be reviewed.</p>
+  <p style="font-size:14px;line-height:1.7;margin-top:24px;color:#475569;">— Debajit Goswami<br/>Founder &amp; CEO<br/>Singularity Horizon Technologies Pvt. Ltd.</p>
+</div>`.trim();
+
+            const ackText = [
+                'Your message has been successfully received by Singularity Horizon Technologies.',
+                '',
+                'Thank you for reaching out. Your transmission has been received and will be reviewed.',
+                '',
+                '— Debajit Goswami',
+                'Founder & CEO',
+                'Singularity Horizon Technologies Pvt. Ltd.',
+            ].join('\n');
+
+            const ackResponse = await fetch(RESEND_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from,
+                    to: [email],
+                    subject: 'Message received — Singularity Horizon Technologies',
+                    html: ackHtml,
+                    text: ackText,
+                }),
+            });
+
+            if (!ackResponse.ok) {
+                console.error(`[contact] Resend rejected the acknowledgement request (status ${ackResponse.status}).`);
+            }
+        } catch {
+            // Silently ignore acknowledgement network failures to preserve primary success
+            console.error('[contact] Network error while sending acknowledgement email.');
+        }
+
         return NextResponse.json({ ok: true });
     } catch {
         console.error('[contact] Network error while contacting email service.');
