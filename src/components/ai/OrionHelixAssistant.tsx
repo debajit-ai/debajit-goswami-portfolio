@@ -16,6 +16,80 @@ const SUGGESTED_QUESTIONS = [
     "Are you the primary OrionHelix AI?",
 ];
 
+const renderMessageContent = (content: string) => {
+    const paragraphs = content.split(/\n{2,}/);
+    
+    return paragraphs.map((paragraph, pIdx) => {
+        const lines = paragraph.split('\n');
+        
+        return (
+            <div key={pIdx} className="mb-4 last:mb-0">
+                {lines.map((line, lIdx) => {
+                    const trimmedLine = line.trim();
+                    const isBullet = trimmedLine.startsWith('- ');
+                    const isNumbered = /^\d+\.\s/.test(trimmedLine);
+                    const isListItem = isBullet || isNumbered;
+                    const isHeading = /^#+\s/.test(trimmedLine);
+                    
+                    let text = trimmedLine;
+                    let prefix = '';
+                    
+                    if (isBullet) {
+                        text = text.substring(2);
+                        prefix = '•';
+                    } else if (isNumbered) {
+                        const match = text.match(/^(\d+\.\s)/);
+                        if (match) {
+                            prefix = match[1].trim();
+                            text = text.substring(match[1].length);
+                        }
+                    } else if (isHeading) {
+                        text = text.replace(/^#+\s*/, '');
+                    }
+                    
+                    const tokens = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
+                    
+                    const formattedLine = tokens.map((token, i) => {
+                        if (token.startsWith('**') && token.endsWith('**')) {
+                            return <strong key={i} className="font-semibold text-white/90">{token.slice(2, -2)}</strong>;
+                        }
+                        const linkMatch = token.match(/^\[(.*?)\]\((.*?)\)$/);
+                        if (linkMatch) {
+                            let url = linkMatch[2];
+                            if (!url.startsWith('http')) url = `https://${url}`;
+                            return <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 hover:underline transition-colors">{linkMatch[1]}</a>;
+                        }
+                        return token;
+                    });
+
+                    if (isListItem) {
+                        return (
+                            <div key={lIdx} className="flex gap-2 mt-1.5 ml-1">
+                                <span className="text-cyan-500/70 select-none min-w-[12px]">{prefix}</span>
+                                <span>{formattedLine}</span>
+                            </div>
+                        );
+                    }
+                    
+                    if (isHeading) {
+                        return (
+                            <span key={lIdx} className="block mt-2 mb-1 font-semibold text-white/95 text-[15px]">
+                                {formattedLine}
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <span key={lIdx} className={lIdx > 0 ? "block mt-1" : "block"}>
+                            {formattedLine}
+                        </span>
+                    );
+                })}
+            </div>
+        );
+    });
+};
+
 export default function OrionHelixAssistant(): ReactElement {
     const [isExpanded, setIsExpanded] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
@@ -151,7 +225,7 @@ export default function OrionHelixAssistant(): ReactElement {
                                             ? 'bg-gradient-to-br from-cyan-900/40 to-cyan-950/40 border border-cyan-800/30 text-white rounded-br-sm shadow-inner' 
                                             : 'bg-white/[0.03] border border-white/[0.05] text-slate-300 rounded-bl-sm'
                                     }`}>
-                                        {msg.content}
+                                        {msg.role === 'assistant' ? renderMessageContent(msg.content) : msg.content}
                                     </div>
                                 </div>
                             ))}
