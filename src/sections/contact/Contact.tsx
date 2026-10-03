@@ -238,7 +238,7 @@ export default function Contact(): ReactElement {
         <footer
             ref={sectionRef}
             id="contact"
-            className="relative flex min-h-[90vh] w-full flex-col justify-end border-t border-white/[0.02] bg-gradient-to-t from-[#030406] via-transparent to-transparent px-6 pb-12 pt-32 sm:px-12 md:px-16 lg:px-24 z-20"
+            className="relative flex min-h-[90vh] w-full flex-col justify-end border-t border-white/[0.02] bg-gradient-to-t from-[#030406] via-transparent to-transparent px-6 pb-32 sm:pb-12 pt-32 sm:px-12 md:px-16 lg:px-24 z-20"
         >
             <div className="mx-auto w-full max-w-6xl">
                 {/* Transmit a Message */}
