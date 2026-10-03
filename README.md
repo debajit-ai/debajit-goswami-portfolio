@@ -1,4 +1,4 @@
-# Hacking Portfolio
+# Debajit Goswami — Founder & CEO
 
 A next-generation cinematic portfolio built with:
 
