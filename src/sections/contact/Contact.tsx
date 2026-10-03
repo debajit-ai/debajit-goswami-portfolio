@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import type { ReactElement } from 'react';
+import type { ReactElement, FormEvent, ChangeEvent } from 'react';
 
 const fadeUpVariants = {
     hidden: { opacity: 0, y: 24 },
@@ -12,6 +12,224 @@ const fadeUpVariants = {
         transition: { duration: 0.85, ease: [0.16, 1, 0.3, 1] as const },
     },
 };
+
+type FormFields = { name: string; email: string; subject: string; message: string; company: string };
+type FormStatus = 'idle' | 'sending' | 'success' | 'error';
+
+const EMPTY_FORM: FormFields = { name: '', email: '', subject: '', message: '', company: '' };
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const labelClass = 'block text-[10px] font-mono uppercase tracking-[0.3em] text-slate-500';
+const inputClass =
+    'mt-3 w-full border-0 border-b border-white/10 bg-transparent px-0 pb-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-colors duration-300 focus:border-white/40 disabled:opacity-50';
+
+function ContactForm(): ReactElement {
+    const [fields, setFields] = useState<FormFields>(EMPTY_FORM);
+    const [status, setStatus] = useState<FormStatus>('idle');
+    const [error, setError] = useState('');
+    const sendingRef = useRef(false);
+
+    const sending = status === 'sending';
+
+    const update = (key: keyof FormFields) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFields((prev) => ({ ...prev, [key]: e.target.value }));
+        if (status === 'error') {
+            setStatus('idle');
+            setError('');
+        }
+    };
+
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (sendingRef.current) return;
+
+        const name = fields.name.trim();
+        const email = fields.email.trim();
+        const message = fields.message.trim();
+
+        if (!name || !email || !message) {
+            setStatus('error');
+            setError('Please complete your name, email, and message.');
+            return;
+        }
+        if (!EMAIL_PATTERN.test(email)) {
+            setStatus('error');
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        sendingRef.current = true;
+        setStatus('sending');
+        setError('');
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...fields, name, email, message, subject: fields.subject.trim() }),
+            });
+            const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+
+            if (!res.ok || !data?.ok) {
+                throw new Error(data?.error || 'Your message could not be delivered. Please try again shortly.');
+            }
+
+            setFields(EMPTY_FORM);
+            setStatus('success');
+        } catch (err) {
+            setStatus('error');
+            setError(err instanceof Error && err.message ? err.message : 'Your message could not be delivered. Please try again shortly.');
+        } finally {
+            sendingRef.current = false;
+        }
+    };
+
+    if (status === 'success') {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                role="status"
+                aria-live="polite"
+                className="flex min-h-[320px] flex-col justify-center rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 sm:p-10"
+            >
+                <span className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.3em] text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_10px_rgba(110,231,183,0.6)]" />
+                    Transmission Complete
+                </span>
+                <p className="mt-6 text-2xl font-semibold tracking-tight text-white">Message received.</p>
+                <p className="mt-3 max-w-md text-sm font-light leading-relaxed text-slate-400">
+                    Your message has been sent successfully. I&apos;ll get back to you as soon as possible.
+                </p>
+                <button
+                    id="contact-send-another"
+                    type="button"
+                    onClick={() => setStatus('idle')}
+                    className="mt-8 self-start text-[11px] font-mono uppercase tracking-[0.3em] text-slate-400 transition-colors duration-300 hover:text-white"
+                >
+                    Send another message →
+                </button>
+            </motion.div>
+        );
+    }
+
+    return (
+        <form
+            id="contact-form"
+            onSubmit={handleSubmit}
+            noValidate
+            aria-busy={sending}
+            className="relative rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 sm:p-10"
+        >
+            {/* Honeypot — hidden from humans, ignored by assistive tech */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+                <label htmlFor="contact-company">Company</label>
+                <input
+                    id="contact-company"
+                    name="company"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={fields.company}
+                    onChange={update('company')}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+                <div>
+                    <label htmlFor="contact-name" className={labelClass}>Name *</label>
+                    <input
+                        id="contact-name"
+                        name="name"
+                        type="text"
+                        required
+                        maxLength={100}
+                        autoComplete="name"
+                        placeholder="Your full name"
+                        value={fields.name}
+                        onChange={update('name')}
+                        disabled={sending}
+                        className={inputClass}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="contact-email" className={labelClass}>Email *</label>
+                    <input
+                        id="contact-email"
+                        name="email"
+                        type="email"
+                        required
+                        maxLength={254}
+                        autoComplete="email"
+                        placeholder="you@domain.com"
+                        value={fields.email}
+                        onChange={update('email')}
+                        disabled={sending}
+                        className={inputClass}
+                    />
+                </div>
+                <div className="sm:col-span-2">
+                    <label htmlFor="contact-subject" className={labelClass}>Subject</label>
+                    <input
+                        id="contact-subject"
+                        name="subject"
+                        type="text"
+                        maxLength={150}
+                        placeholder="Collaboration, research, investment, or enquiry"
+                        value={fields.subject}
+                        onChange={update('subject')}
+                        disabled={sending}
+                        className={inputClass}
+                    />
+                </div>
+                <div className="sm:col-span-2">
+                    <label htmlFor="contact-message" className={labelClass}>Message *</label>
+                    <textarea
+                        id="contact-message"
+                        name="message"
+                        required
+                        rows={5}
+                        maxLength={5000}
+                        placeholder="Write your message…"
+                        value={fields.message}
+                        onChange={update('message')}
+                        disabled={sending}
+                        className={`${inputClass} resize-none leading-relaxed`}
+                    />
+                </div>
+            </div>
+
+            <div className="mt-10 flex flex-col-reverse gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <p
+                    role="alert"
+                    aria-live="assertive"
+                    className={`min-h-[1.25rem] text-xs font-mono tracking-wide ${status === 'error' ? 'text-rose-300/90' : 'text-slate-600'}`}
+                >
+                    {status === 'error' ? error : 'Delivered directly to the founder’s inbox.'}
+                </p>
+                <button
+                    id="contact-submit"
+                    type="submit"
+                    disabled={sending}
+                    className="group inline-flex items-center justify-center gap-3 rounded-full border border-white/15 bg-white/[0.03] px-8 py-3.5 text-[11px] font-mono uppercase tracking-[0.3em] text-slate-200 transition-all duration-300 hover:-translate-y-[2px] hover:border-white/35 hover:bg-white/[0.06] hover:text-white hover:shadow-[0_4px_24px_rgba(255,255,255,0.08)] disabled:pointer-events-none disabled:opacity-60"
+                >
+                    {sending ? (
+                        <>
+                            <span className="h-3 w-3 animate-spin rounded-full border border-white/20 border-t-white/80" aria-hidden="true" />
+                            Transmitting…
+                        </>
+                    ) : (
+                        <>
+                            Transmit Message
+                            <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                        </>
+                    )}
+                </button>
+            </div>
+        </form>
+    );
+}
 
 export default function Contact(): ReactElement {
     const sectionRef = useRef<HTMLElement>(null);
@@ -23,6 +241,30 @@ export default function Contact(): ReactElement {
             className="relative flex min-h-[90vh] w-full flex-col justify-end border-t border-white/[0.02] bg-gradient-to-t from-[#030406] via-transparent to-transparent px-6 pb-12 pt-32 sm:px-12 md:px-16 lg:px-24 z-20"
         >
             <div className="mx-auto w-full max-w-6xl">
+                {/* Transmit a Message */}
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.2 }}
+                    className="mb-24 grid grid-cols-1 gap-10 border-b border-white/[0.04] pb-24 lg:grid-cols-12 lg:gap-8"
+                >
+                    <motion.div variants={fadeUpVariants} className="lg:col-span-4">
+                        <span className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                            Secure Channel
+                        </span>
+                        <h3 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                            Transmit a Message
+                        </h3>
+                        <p className="mt-6 max-w-sm text-sm font-light leading-relaxed text-slate-400">
+                            For collaborations, research partnerships, investment conversations, or any enquiry about
+                            Singularity Horizon Technologies and OrionHelix AI.
+                        </p>
+                    </motion.div>
+                    <motion.div variants={fadeUpVariants} className="lg:col-span-8">
+                        <ContactForm />
+                    </motion.div>
+                </motion.div>
+
                 <motion.div
                     initial="hidden"
                     whileInView="visible"
