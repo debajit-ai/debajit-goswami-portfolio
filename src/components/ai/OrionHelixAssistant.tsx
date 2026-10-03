@@ -178,7 +178,7 @@ export default function OrionHelixAssistant(): ReactElement {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
@@ -187,7 +187,7 @@ export default function OrionHelixAssistant(): ReactElement {
                         exit={{ opacity: 0, y: 30, scale: 0.95, filter: "blur(8px)" }}
                         transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                         style={{ transformOrigin: "bottom right" }}
-                        className="mb-6 flex h-[550px] max-h-[80vh] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/95 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+                        className="mb-4 sm:mb-6 flex h-[550px] max-h-[75vh] sm:max-h-[80vh] w-[380px] max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/95 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
                     >
                         {/* Header */}
                         <div className="flex flex-col border-b border-white/[0.05] bg-black/60 px-5 py-4">

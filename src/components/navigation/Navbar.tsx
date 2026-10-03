@@ -26,14 +26,14 @@ export default function Navbar(): ReactElement {
         >
             <nav
                 aria-label="Primary"
-                className="flex h-14 items-center justify-between rounded-full border border-white/10 bg-[#030406]/75 px-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+                className="flex h-14 items-center justify-between rounded-full border border-white/10 bg-[#030406]/75 px-3 sm:px-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl"
             >
-                <Link href="/" className="flex items-center gap-3 shrink-0">
+                <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <span
                         aria-hidden="true"
                         className="h-2 w-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"
                     />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-200 sm:text-xs">
+                    <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-200">
                         Singularity Horizon
                     </span>
                 </Link>
